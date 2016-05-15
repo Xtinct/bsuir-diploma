@@ -175,7 +175,7 @@ end
 \label{sub:arch_and_mod:parser}
 Следующий за лексическим анализом шаг --- синтаксический анализ или \textit{парсинг}.
 
-Парсинг --- это процесс структурирования линейного представления в соответствии с заданной грамматикой. "Линейное представление" может быть предложением, исходным кодом программы, последовательность геологических слоев, звуковым, файлом, короче говоря, любой линейной последовательностью, в которой предыдущие элементы некоторым способом предопределяют следующий элемент.
+Парсинг --- это процесс структурирования линейного представления в соответствии с заданной грамматикой. ``Линейное представление'' может быть предложением, исходным кодом программы, последовательность геологических слоев, звуковым, файлом, короче говоря, любой линейной последовательностью, в которой предыдущие элементы некоторым способом предопределяют следующий элемент.
 
 В дополнение к поиску структуры входного текста, синтаксический анализ должен также отвергать недействительные тексты, сообщая о синтаксических ошибках. Поскольку синтаксический анализ имеет менее локальный характер, для него требуются более продвинутые методы. В нашем случае используется та же базовая стратегия: нотация, пригодная для чтения человеком, трансформируется в машинную низкоуровневую нотацию, которая подходит для эффективного выполнения. Этот процесс называется генерацией синтаксического анализатора.
 
@@ -231,7 +231,7 @@ $X_1...X_n$. В данном случае терминал обозначает 
 эта информация помогает в переводе предложения. После того, как структура документа обработана синтаксическим анализатором, манипулировать ей становится в разы проще.
 \subsubsection{Генератор парсеров YACC}~
 \label{sub:arch_and_mod:parser_generator}
-Посколько разработка собственного парсера является очень затратной, было принято решение использовать генератор парсеров. Генератор парсеров --- приложение, которое генерирует исходный код LALR(1)-парсера на основе BNF грамматик. Акроним LALR расшифровывается как lookahead left-right. Цифра "1" означает, на сколько символов вперед смотрит анализатор. Для написания был использован адаптер YACC(yet another compiler compiler) для языка ruby --- RACC. В качестве правил использовалась модифицированная BNF грамматика для языка VHDL и уникальный набор действий для каждого правила. Пример грамматики приведен в листинге \ref{lst:arch_and_mod:yacc_rules}:
+Посколько разработка собственного парсера является очень затратной, было принято решение использовать генератор парсеров. Генератор парсеров --- приложение, которое генерирует исходный код LALR(1)-парсера на основе BNF грамматик. Акроним LALR расшифровывается как lookahead left-right. Цифра ``1'' означает, на сколько символов вперед смотрит анализатор. Для написания был использован адаптер YACC(yet another compiler compiler) для языка ruby --- RACC. В качестве правил использовалась модифицированная BNF грамматика для языка VHDL и уникальный набор действий для каждого правила. Пример грамматики приведен в листинге \ref{lst:arch_and_mod:yacc_rules}:
 \begin{lstlisting}[language=Ruby, style=rubystyle,caption={Различные описания грамматик и действия, вызываемые при соответствии грамматики линейной последовательности}, label=lst:arch_and_mod:yacc_rules]
   .
   .
@@ -277,6 +277,66 @@ expression :
     ',' identifier identifier_list_loop0 {result = val - [',']}
     | {result = val}
 \end{lstlisting}
+
+
+Подобно другим сдвиго-сверточным анализаторам, LR-парсер ожидает сканирования следующего символа и пытается сделать свертку в некую конструкцию всех элементов на стеке. Как только найдено правило для заданных элементов, парсер немедленно сворачивает конструкцию. В примере в таблице \ref{arch_and_mod:parse_table}, литерал \textit{A} сворачивается до \textit{Значения}, а затем до \textit{Умножения} (согласно имени правила) на шагах 1-3 как только следующий(lookahead) символ ``*''  виден, а не ждет дополнительных комманд, чтобы организовать эти части дерева. Решения, как  обрабатывать литерал \textit{A} базируются только на том, что сканнер и парсер уже видели, не принимая в расчет те элементы, что будут прочтены позднее.
+Свертка реорганизует последние проанализириванные элементы непосредственно слева от следующего символа. Поэтому список проанализированных элементов является стеком. Стек растет слева-направо. Вершина стека находится левее всех и содержит старейший проанализированный фрагмент. Каждый шаг свертки действует только на крайнем правом, новейшем фрагменте.
+Пример обработки выражения $A*2+1$ приведен в таблице \ref{arch_and_mod:parse_table}:
+
+\begin{table}[ht]
+  \caption{Пример разбора выражения $A*2+1$}
+  \label{arch_and_mod:parse_table}
+  \begin{tabular}{| >{\centering}m{0.07\textwidth}
+                  | >{\centering}m{0.23\textwidth}
+                  | >{\centering}m{0.2\textwidth}
+                  | >{\centering}m{0.4\textwidth}|}
+  \hline
+  Шаг & Cтек парсера & Выражение & Сдвиг/Свертка \tabularnewline
+  \hline
+  0 & empty & $A*2+1$ & Cдвиг \tabularnewline
+  \hline
+  1 &  id  & $*2 + 1$ & Значение $\rightarrow $ id \tabularnewline
+  \hline
+  2 &  Value &  $*2 + 1$ & Products $\rightarrow $ Value \tabularnewline
+  \hline
+  3 &  Products & $*2 + 1$ & Сдвиг \tabularnewline
+  \hline
+  4 &  Products  * &  $2 + 1$  & Сдвиг \tabularnewline
+  \hline
+  5 &  Products  * int &$  + 1$  & Value $\rightarrow $ int \tabularnewline
+  \hline
+  6 &  Products  * Value &  $+ 1$ &  Products $\rightarrow $ Products * Value \tabularnewline
+  \hline
+  7 &  Products & $+ 1$  &  Sums $\rightarrow $ Products \tabularnewline
+  \hline
+  8 &  Sums & $+ 1$  & Сдвиг \tabularnewline
+  \hline
+  9 &  Sums  + &  $1$  & Сдвиг \tabularnewline
+  \hline
+  10 & Sums  + int &  eof &  Value $\rightarrow $ int \tabularnewline
+  \hline
+  11 & Sums + Value & eof &   Products $\rightarrow $ Value \tabularnewline
+  \hline
+  12 & Sums + Products &  eof  & Sums $\rightarrow $ Sums + Products \tabularnewline
+  \hline
+  13 & Sums & eof &  done \tabularnewline
+  \hline
+  \end{tabular}
+\end{table}
+
+
+На рисунке~\ref{fig:arch_and_mod::lr_example_img} представлено состояние парсера на одном из шагов:
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[scale=0.3]{parser_state.png}
+  \caption{ Состояние парсера на шаге №6 }
+  \label{fig:arch_and_mod::lr_example_img}
+\end{figure}
+
+\FloatBarrier
+
+
 \subsubsection{Абстрактное синтаксическое дерево}~
 \label{sub:arch_and_mod:ast}
 Каждое правило содержит действие, которое выполнится при соответствии оного. В данном ПС эти действия на построение абстрактного синтаксического дерева(Abstract syntax tree, AST), которое представляет собой структуру программы в удобном виде, с возможностью модификации узлов, что является необходимым условием для обфускации исходной последовательности.
@@ -300,7 +360,157 @@ expression :
 \subsection{Обфускатор}
 \label{sub:arch_and_mod:grammars}
 
-После того, как сформировано
+После того, как сформировано синтаксическое дерево, необходимо внести в его изменения. В данном ПС обфускатором представлен наборов классов-оболочек над примитивами языка VHDL и контейнерами литералов.
+Т.к мы используем генератор парсеров, то обфускатор инициализируется на этапе синтаксического анализа(создаются экземпляры классов, создаются соответствия между реальными именами переменных и их обфусцированными вариантами). Сам процесс обфускации реализован через определение метода \textbf{to\_s}  у классов-оболочек, что позволяет автоматически заменять имена переменных, вставлять произвольный код прямо в процессе конвертации экземпляра класса в строку:
+
+\begin{lstlisting}[language=Ruby, style=rubystyle,caption={Определение метода перевода класса в строку для примитива component instantiation}, label=lst:arch_and_mod:wrapper_to_s]
+  def to_s
+    "#{@name} : #{@instantiated_unit} #{@generic_map_aspect}#{@port_map_aspect ? '' : ';'}#{@port_map_aspect}"
+  end
+\end{lstlisting}
+
+
+\subsubsection{Контейнеры литералов}~
+  Контейнеры литералов представлены в виде трёх классов для различных видов литералов:
+  \begin{itemize}
+  \item InitializerRepository --- контейнер для хранения строковых литералов. Является статическим, содержит в себе все строковые литералы, объявленные в программе, такие как имена переменных, сигналов, процессов, архитектур. При добавлении нового литерала для него автоматически создаётся его обфусцированное соответствие:
+  \begin{lstlisting}[language=Ruby, style=rubystyle,caption={Определение метода перевода класса в строку для примитива component instantiation}, label=lst:arch_and_mod:initializer_repository_add]
+    def self.add identifier
+      identifier = [identifier] unless identifier.is_a? Array
+      @@initializers.push identifier
+      @@initializers.flatten!
+      @@initializers.uniq!(&:name)
+      identifier.each{|i| generate_mapping_for(i)}
+    end
+  \end{lstlisting}
+
+  Как видно из листинга \ref{lst:arch_and_mod:initializer_repository_add}, список литералов их соответствия являются уникальными, так как многие из них используются несколько раз(например, при объявлении архитектуры и при её окончании).
+  Контейнер имеет ряд вспомогательных методов, которые используются сторонними классами для определения, существует ли соответствие для данного литерала и метод выдачи соответствия по имени литерала:
+
+  \begin{lstlisting}[language=Ruby, style=rubystyle,caption={Вспомогательные методы контейнера}, label=lst:arch_and_mod:support_methods]
+    def self.mapping_defined? identifier
+      !!@@mappings[identifier]
+    end
+
+    def self.mapping_for identifier
+      @@mappings[identifier]
+    end
+  \end{lstlisting}
+  \item
+  LiteralRepository --- контейнер для хранения числовых и символьных литералов. Этот контейнер имеет специфическое поведение, так как конкретные числа или символы невозможно поставить в соответствие некоторому строковому литералу. Поэтому у этих литералов существует дополнительный метод \textbf{stringified}, уникальный, для каждого типа литерала:
+  \subitem Для числовых литералов:
+    \begin{lstlisting}[language=Ruby, style=rubystyle,caption={Вспомогательные метод stringified для числовых литералов}, label=lst:arch_and_mod:decimal_stringified]
+      def stringified
+        @value.to_i
+      end
+    \end{lstlisting}
+  \subitem Для строковых литералов:
+     \begin{lstlisting}[language=Ruby, style=rubystyle,caption={Вспомогательные метод stringified для символьных литералов}, label=lst:arch_and_mod:character_stringified]
+      def stringified
+        "'#{@value}'"
+      end
+    \end{lstlisting}
+  Контейнер ищет соответствие по значению, возвращаемому этой функцией. Это сделано для того, чтобы избежать возможных коллизий, так как в синтаксическом анализаторе все числа и символы представлены строкой из одного символа, поэтому возможен конфликт типов при одновременном существовании в исходном коде символьных литералов '0' и '1' и соотвествующих числовых литералов.
+  \item
+  ConstantValueRepository --- контейнер для хранения константных значений. Этот контейнер уникален тем, что используется для функциональной обфускации: вместо генерации текстового соответствия, этот контейнер генерирует определение сигнала, которое затем добавляется в определения архитектуры и соответствующий примитив для замены оригинального значения:
+  \begin{lstlisting}[language=Ruby, style=rubystyle,caption={Создание сигнала на основе значения константы}, label=lst:arch_and_mod:constant_generate_name]
+    .
+    .
+    .
+    @@signals << SignalDeclaration.new('SIGNAL', name, nil, TypeWrapper.new(literal.type, nil, true), nil)
+    wires = AssociationList.new([AssociationElement.new('src', name), AssociationElement.new('q', name)])
+    port_map_aspect = PortMap.new('PORT', wires)
+    if literal.value == '1'
+      @@statements << ComponentInstantiation.new(attr_name, 'cvg_1', nil, port_map_aspect);
+    else
+      @@statements << ComponentInstantiation.new(attr_name, 'cvg_2', nil, port_map_aspect);
+    end
+    .
+    .
+    .
+  \end{lstlisting}
+  \end{itemize}
+
+Все 3 контейнера реализуют метод генерации случайного имени, представленный в листинге~\ref{lst:arch_and_mod:generate_name}
+  \begin{lstlisting}[language=Ruby, style=rubystyle,caption={Вспомогательные метод stringified для символьных литералов}, label=lst:arch_and_mod:generate_name]
+    def self.generate_random_name(size: rand(6..10), alphabet: %w{ 2 3 4 6 7 9 A C D E F G H J K M N P Q R T V W X Y Z})
+      charset = alphabet
+      reduced_charset = charset.reject{|x| x =~ /\d/}
+
+      reduced_charset[rand(reduced_charset.size)] + (1...size).map{ charset.to_a[rand(charset.size)] }.join
+    end
+  \end{lstlisting}
+Три данные класса составляют существенную часть обфускатора, так как реализуют базовый функционал, которым управляют классы-оболочки.
+
+
+
+
+\subsubsection{Классы-оболочки}~реализуют базовые примитивы языка VHDL. В данном ПС представлено 32 класса, экземпляры которых при конвертации в строку представляют копию исходного кода, на основе которого был создан экземпляр. Поскольку структура проанализированного кода представляет собой дерево, классы более высшего порядка принимают в качестве аргументов классы, описывающие меньшие порядки или терминальные элементы(контейнеры литералов). Ниже представлен список классов высокого порядка:
+\begin{itemize}
+\item класс DesignFile является классом высшего порядка(корнем синтаксического дерева), содержащим в себе все выражения дерева. Принимает только один аргумент: набор выражений, однако играет очень важную роль в функциональной обфускации, так как именно на этом этапе добавляются дополнительные примитивы, необходимые для запутывания схемы на  уровне RTL:
+  \begin{lstlisting}[language=Ruby, style=rubystyle,caption={Добавление дополнительных компонентов для функциональной обфускации}, label=lst:arch_and_mod:design_functional_obf]
+    def generalize_literals
+      .
+      .
+      .
+      @statements.unshift(cvg_1, cvg_2)
+      header = @statements.select {|s| s.class.name == 'EntityDeclaration'}[0].header
+
+      unless header.is_a? Array
+        header = [header]
+      end
+      generic_clause = nil
+
+      append_to_header = false
+      if header[0] && header[0].class.name == 'GenericClause'
+        generic_clause = header[0]
+      else
+        generic_clause = GenericClause.new([])
+        append_to_header = true
+      end
+
+      generic_clause.generics.each do |statement|
+        if statement.class.name == 'SignalDeclaration'
+          statement.value = statement.assigned_value
+        end
+      end
+      statements = []
+
+      LiteralRepository.literals.each do |literal|
+        signal = SignalDeclaration.new(nil, LiteralRepository.mapping_for(literal.stringified), nil, TypeWrapper.new(literal.type, nil, true), literal.stringified)
+        generic_clause.generics.unshift signal
+      end
+
+      generic_clause.generics.last.type.append_semicolon = false
+
+      (@statements.select {|s| s.class.name == 'EntityDeclaration'}[0].header = [generic_clause,header].flatten) if append_to_header
+    end
+  \end{lstlisting}
+\item класс EntityDeclaration содержит в себе описание структуры сущности. Сущность содержит в себе порты, константы, <<дженерики>>.
+\item класс ArchitectureDeclaration описывает дизайн архитектуры. Класс принимает имя архитектуры, имя сущности, набор определений(объявления переменных, сигналов), набор операторов, и закрывающую часть(посколько VHDL имеет различные формы закрывающих конструкций). Экземпляр этого класса создаётся каждый раз, когда грамматике \textit{architecture\_declaration} находится соответствие. Кроме того, именно в этом классе добавляются дополнительные определения, созданные функциональные обфускатором:
+  \begin{lstlisting}[language=Ruby, style=rubystyle,caption={Часть кода, отвечающая за функциональную обфускацию}, label=lst:arch_and_mod:declaration_functional_obf]
+    class ArchitectureDeclaration
+
+      attr_accessor :type, :identifiers
+      def initialize(arch_name, entity_name, declarative_part , statement_part, closing_part)
+        @name = arch_name
+        @entity = entity_name
+        @declarations = declarative_part
+        @statements = statement_part
+        @closing_part = closing_part.join(' ')
+        obfuscate_literals
+      end
+
+      def obfuscate_literals
+        @declarations.unshift(*ConstantValueRepository.signals)
+        @statements.unshift(*ConstantValueRepository.statements)
+      end
+      .
+      .
+      .
+  \end{lstlisting}
+\item класс ProcessDeclaration описывает оператор процесса. Оператор процесса --- параллельный оператор, представляющий основу языка VHDL. Объявленными в процессе могут быть: объявление и тело подпрограммы, объявление типа и подтипа, объявление константы, переменной, файла, псевдонима, объявление и спецификация атрибута, объявление группы, описание use. То, что объявлено в процессе, имеет область действия (видимость), ограниченную данным процессом. Принимает в качестве параметров модифкатор процесса(POSTPONED или отсутствует), метку процесса, список чувствительности, объявления(сигналов, подпрограмм, переменных и т.д), набор операторов, закрывающую часть(аналогично классу \\ArchitectureDeclaration). Учавствует в функциональной обфускации: список чувствительности должен содержать сигналы, описанные в генераторах константных значений.
+\end{itemize}
 % \subsection{Представление вероятностной сети}
 
 % Другой важной частью разработанной библиотеки являются типы для представления и работы с самими вероятностными сетями.
