@@ -118,7 +118,7 @@
 % \renewcommand\@dotsep{2}
 \makeatother
 
-
+\usepackage{seqsplit}
 % Зачем: Работа с колонтитулами
 \usepackage{fancyhdr} % пакет для установки колонтитулов
 \pagestyle{fancy} % смена стиля оформления страниц
@@ -133,6 +133,17 @@
 \fancypagestyle{plain}{
     \fancyhf{}
     \rfoot{\thepage}}
+
+\usepackage[absolute]{textpos}
+\usepackage{lscape,lipsum}
+
+\fancypagestyle{lscape}{%
+\fancyhf{} % clear all header and footer fields
+\fancyfoot[R] {%
+\begin{textblock}{1}(13,1){\rotatebox{90}{\thepage}}\end{textblock}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}}
+
 
 
 % Зачем: Задает стиль заголовков раздела жирным шрифтом, прописными буквами, без точки в конце
@@ -266,6 +277,8 @@
 
 % Зачем: Удобная вёрстка многострочных формул, масштабирующийся текст в формулах, формулы в рамках и др
 \usepackage{amsmath}
+
+\usepackage{pdflscape}
 
 
 % Зачем: Поддержка ажурного и готического шрифтов
