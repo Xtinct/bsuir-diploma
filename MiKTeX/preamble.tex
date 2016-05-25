@@ -38,12 +38,14 @@
 % Почему: Пункт 2.1.1 Требований по оформлению пояснительной записки.
 \usepackage{extsizes}
 
-
+\sloppy
 % Зачем: Длинна, пимерно соответвующая 5 символам
 % Почему: Требования содержат странное требование про отсупы в 5 символов (для немоноширинного шрифта :| )
 \newlength{\fivecharsapprox}
 \setlength{\fivecharsapprox}{6ex}
 
+
+\usepackage{afterpage}
 
 % Зачем: Добавляет отступы для абзацев.
 % Почему: Пункт 2.1.3 Требований по оформлению пояснительной записки.
@@ -93,7 +95,18 @@
 
 % Зачем: Переопределяем стандартную нумерацию, т.к. в отчете будут только section и т.д. в терминологии TeX
 \makeatletter
+% Зачем: Переопределяем стандартную нумерацию, т.к. в отчете будут только section и т.д. в терминологии TeX
 \renewcommand{\thesection}{\arabic{section}}
+
+
+% Зачем: Для определения разных стилей (под)разделов в содержании и в тексте.
+\usepackage{titlesec}
+
+% Зачем: Начинаем разделы с новой страницы
+\newcommand{\sectionbreak}{\clearpage}
+
+
+
 \makeatother
 
 
@@ -124,6 +137,8 @@
 \pagestyle{fancy} % смена стиля оформления страниц
 
 
+
+
 % Зачем: Нумерация страниц располагается справа снизу страницы
 % Почему: Пункт 2.2.8 Требований по оформлению пояснительной записки.
 \fancyhf{} % очистка текущих значений
@@ -149,37 +164,41 @@
 % Зачем: Задает стиль заголовков раздела жирным шрифтом, прописными буквами, без точки в конце
 % Почему: Пункты 2.1.1, 2.2.5, 2.2.6 и ПРИЛОЖЕНИЕ Л Требований по оформлению пояснительной записки.
 \makeatletter
-\renewcommand\section{%
-  \clearpage\@startsection {section}{1}%
-    {\fivecharsapprox}%
-    {-1em \@plus -1ex \@minus -.2ex}%
-    {1em \@plus .2ex}%
-    {\raggedright\hyphenpenalty=10000\normalfont\large\bfseries\MakeUppercase}}
+\titleformat{\section}
+  {\filright\hyphenpenalty=10000\normalfont\large\bfseries}
+  {\thesection}
+  {1em \@plus 1ex \@minus .2ex}{\MakeUppercase}
+
+\titlespacing{\section}
+    {\parindent}{0em}{1em \@plus .2ex}
 \makeatother
 
 
 % Зачем: Задает стиль заголовков подразделов
 % Почему: Пункты 2.1.1, 2.2.5 и ПРИЛОЖЕНИЕ Л Требований по оформлению пояснительной записки.
 \makeatletter
-\renewcommand\subsection{%
-  \@startsection{subsection}{2}%
-    {\fivecharsapprox}%
-    {-1em \@plus -1ex \@minus -.2ex}%
-    {1em \@plus .2ex}%
-    {\raggedright\hyphenpenalty=10000\normalfont\normalsize\bfseries}}
+\titleformat{\subsection}
+  {\filright\hyphenpenalty=10000\normalfont\normalsize}
+  {\textbf{\thesubsection}}
+  {1em \@plus 1ex \@minus .2ex}{}
+
+\titlespacing{\subsection}
+    {\parindent}{1em \@plus 1ex \@minus .2ex}{1em \@plus .2ex}
 \makeatother
 
 
 % Зачем: Задает стиль заголовков пунктов
 % Почему: Пункты 2.1.1, 2.2.5 и ПРИЛОЖЕНИЕ Л Требований по оформлению пояснительной записки.
 \makeatletter
-\renewcommand\subsubsection{
-  \@startsection{subsubsection}{3}%
-    {\fivecharsapprox}%
-    {-1em \@plus -1ex \@minus -.2ex}%
-    {\z@}%
-    {\raggedright\hyphenpenalty=10000\normalfont\normalsize\bfseries}}
+\titleformat{\subsubsection}
+  {\filright\hyphenpenalty=10000\normalfont\normalsize}
+  {\textbf{\thesubsubsection}}
+  {1em \@plus 1ex \@minus .2ex}{}
+
+\titlespacing{\subsubsection}
+    {\parindent}{1em \@plus 1ex \@minus .2ex}{0em}
 \makeatother
+
 
 % Зачем: для оформления введения и заключения, они должны быть выровнены по центру.
 % Почему: Пункты 1.1.15 и 1.1.11 Требований по оформлению пояснительной записки.
@@ -194,10 +213,13 @@
 \makeatother
 
 
-
 % Зачем: Задает стиль библиографии
 % Почему: Пункт 2.8.6 Требований по оформлению пояснительной записки.
 \bibliographystyle{styles/belarus-specific-utf8gost780u}
+
+
+
+
 
 
 % Зачем: Пакет для вставки картинок
@@ -225,15 +247,14 @@
 % Зачем: когда в формулах много кириллических символов команда \text{} занимает много места
 \DeclareRobustCommand{\x}[1]{\text{#1}}
 
-
 % Зачем: Задание подписей, разделителя и нумерации частей рисунков
 % Почему: Пункт 2.5.5 Требований по оформлению пояснительной записки.
 \DeclareCaptionLabelFormat{stbfigure}{Рисунок #2}
 \DeclareCaptionLabelFormat{stbtable}{Таблица #2}
 \DeclareCaptionLabelSeparator{stb}{~--~}
 \captionsetup{labelsep=stb}
-\captionsetup[figure]{labelformat=stbfigure,justification=centering}
-\captionsetup[table]{labelformat=stbtable,justification=raggedright}
+\captionsetup[figure]{skip=20pt,labelformat=stbfigure,justification=centering}
+\captionsetup[table]{format=hang,skip=0pt,labelformat=stbtable,justification=raggedright}
 \renewcommand{\thesubfigure}{\asbuk{subfigure}}
 
 % Зачем: Окружения для оформления формул
@@ -278,7 +299,7 @@
 % Зачем: Удобная вёрстка многострочных формул, масштабирующийся текст в формулах, формулы в рамках и др
 \usepackage{amsmath}
 
-\usepackage{pdflscape}
+\usepackage{lscape}
 
 
 % Зачем: Поддержка ажурного и готического шрифтов
@@ -410,8 +431,8 @@ escapechar=\&
   columns=fullflexible,
   basicstyle=\footnotesize\ttfamily,
   commentstyle = \ttfamily\color{gray},
-  keywordstyle=\ttfamily\color{blue},
-  stringstyle=\color{orange}
+  keywordstyle=\ttfamily\color{black},
+  stringstyle=\color{black}
 }
 
 
